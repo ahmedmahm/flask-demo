@@ -15,7 +15,8 @@ jobs:
       - uses: rlespinasse/github-slug-action@master
       - uses: mr-smithers-excellent/docker-build-push@v4
         with:
-          image: ahmedmahmoud25/flaskprivate
+          image: ${{ secrets.DOCKER_USERNAME}}/flaskprivate
+          registry: docker.io 
           tag: ${{ env.GIT_REF_SLUG}}
           username: ${{ secrets.DOCKER_USERNAME}}
           password: ${{ secrets.DOCKER_PASSWORD}}
