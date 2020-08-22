@@ -20,5 +20,4 @@ jobs:
           tag: ${{ env.GITHUB_REF_SLUG }}
           registry: "${{ secrets.REGISTRY_LOGIN_SERVER }}"
           username: ${{ secrets.REGISTRY_USERNAME }}
-          password: ${{ secrets.REGISTRY_PASSWORD
- }}
+          password: ${{ secrets.REGISTRY_PASSWORD}}
