@@ -1,10 +1,10 @@
-name: Deployment
+name: Deploy
 
 on:
   push:
     branches:
-      - "master"
-
+    - "master"
+      
 jobs:
   build_image:
     runs-on: ubuntu-latest
@@ -13,19 +13,13 @@ jobs:
       - run: echo ::set-env name=REPOSITORY_NAME::$(echo "$GITHUB_REPOSITORY" | awk -F / '{print $2}' | sed -e "s/:refs//")
         shell: bash
       - uses: rlespinasse/github-slug-action@master
-      - uses: azure/login@v1
+      - uses: mr-smithers-excellent/docker-build-push@v3
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-        
-        
-      - uses: azure/docker-login@v1
-        with:
-            login-server: ${{ secrets.REGISTRY_LOGIN_SERVER }}
-            username: ${{ secrets.REGISTRY_USERNAME }}
-            password: ${{ secrets.REGISTRY_PASSWORD }}
-      - run: |
-            docker build . -t ${{ secrets.REGISTRY_LOGIN_SERVER }}/sampleapp:${{ github.sha }}
-            docker push ${{ secrets.REGISTRY_LOGIN_SERVER }}/sampleapp:${{ github.sha }}
+          image: ${{ env.REPOSITORY_NAME }}
+          tag: ${{ env.GITHUB_REF_SLUG }}
+          registry: ${{ secrets.ACR_REGISTRY }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
   deploy_to_kubernetes:
     runs-on: ubuntu-latest
     needs: build_image
@@ -36,31 +30,6 @@ jobs:
           resource-group: development-rg
           cluster-name: development-aks
       - run: echo ::set-env name=REPOSITORY_NAME::$(echo "$GITHUB_REPOSITORY" | awk -F / '{print $2}' | sed -e "s/:refs//")
-      - uses: rlespinasse/github-slug-action@master
-      - run: |
-          cat << EOF > main.tf.template
-          terraform {
-            backend "azurerm" {
-              resource_group_name  = "remote-state"
-               storage_account_name = "devblobstatestorage"
-              container_name       = "tfstate"
-              key                  = "${REPOSITORY_NAME}-${GITHUB_REF_SLUG}.tfstate"
-            }
-          }
-          module "delphai-app" {
-            source      = "github.com/ahmedmahm/terraform-Azure//modules/app"
-            app_port    = 8080
-            delphai_env = "development"
-            image       = "developmentregistiry.azurecr.io/${REPOSITORY_NAME}:${GITHUB_REF_SLUG}"
-            name        = "${GITHUB_REF_SLUG}"
-            namespace   = "${REPOSITORY_NAME}"
-            has_ingress = false
-          }
-          EOF
-      - uses: nowactions/envsubst@v1
-        with:
-          input: ./main.tf.template
-          output: ./main.tf
       - run: mkdir -p ~/.kube && cp ${KUBECONFIG} ~/.kube/config
       - uses: hashicorp/setup-terraform@v1
       - uses: azure/setup-kubectl@v1
@@ -72,4 +41,3 @@ jobs:
           ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
           ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
       - run: kubectl patch deployment ${GITHUB_REF_SLUG} --namespace ${REPOSITORY_NAME} -p "{\"spec\":{\"template\":{\"metadata\":{\"labels\":{\"date\":\"`date +'%s'`\"}}}}}"
-
