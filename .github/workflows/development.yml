@@ -34,7 +34,6 @@ jobs:
       - uses: hashicorp/setup-terraform@v1
       - uses: azure/setup-kubectl@v1
       - run: kubectl create ns ${REPOSITORY_NAME} --dry-run=client --output yaml | kubectl apply -f -
-      - run: terraform init && terraform apply -auto-approve
         env:
           ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
           ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
