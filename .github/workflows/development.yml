@@ -29,14 +29,12 @@ jobs:
           creds: "${{ secrets.AZURE_CREDENTIALS }}"
           resource-group: development-rg
           cluster-name: development-aks
-      - run: echo ::set-env name=REPOSITORY_NAME::$(echo "$GITHUB_REPOSITORY" | awk -F / '{print $2}' | sed -e "s/:refs//")
-      - run: mkdir -p ~/.kube && cp ${KUBECONFIG} ~/.kube/config
-      - uses: hashicorp/setup-terraform@v1
-      - uses: azure/setup-kubectl@v1
-      - run: kubectl create ns ${REPOSITORY_NAME} --dry-run=client --output yaml | kubectl apply -f -
-        env:
-          ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
-          ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-          ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
-      - run: kubectl patch deployment ${GITHUB_REF_SLUG} --namespace ${REPOSITORY_NAME} -p "{\"spec\":{\"template\":{\"metadata\":{\"labels\":{\"date\":\"`date +'%s'`\"}}}}}"
+      - uses: Azure/k8s-deploy@v1
+        with:
+          manifests: |
+            manifests/deployment.yml
+            manifests/service.yml
+          images: |
+            ${{ secrets.ACR_REGISTRY }}/${{ env.REPOSITORY_NAME }}:${{ env.GITHUB_REF_SLUG }}
+          imagepullsecrets: |
+            demo-k8s-secret
