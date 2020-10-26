@@ -12,7 +12,7 @@ jobs:
       - uses: actions/checkout@v2
       - run: echo ::set-env name=REPOSITORY_NAME::$(echo "$GITHUB_REPOSITORY" | awk -F / '{print $2}' | sed -e "s/:refs//")
         shell: bash
-      - uses: rlespinasse/github-slug-action@master
+      - uses: rlespinasse/github-slug-action@1.1.1
       - uses: mr-smithers-excellent/docker-build-push@v3
         with:
           image: ${{ env.REPOSITORY_NAME }}
